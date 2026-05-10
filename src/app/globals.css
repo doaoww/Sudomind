@@ -1,26 +1,756 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:is(.dark *));
+
+/* ===== THEME: Light (Clouds) - Default ===== */
+/* Material 3 + Glassmorphism + Claymorphism */
+:root,
+[data-theme="clouds"] {
+  /* Core Colors */
+  --background: oklch(0.97 0.01 240);
+  --foreground: oklch(0.25 0.02 250);
+  
+  /* Card with glass effect */
+  --card: oklch(0.98 0.005 240 / 0.8);
+  --card-foreground: oklch(0.25 0.02 250);
+  
+  /* Popover */
+  --popover: oklch(0.99 0.005 240 / 0.95);
+  --popover-foreground: oklch(0.25 0.02 250);
+  
+  /* Primary - Soft blue */
+  --primary: oklch(0.55 0.15 250);
+  --primary-foreground: oklch(0.99 0 0);
+  
+  /* Secondary */
+  --secondary: oklch(0.92 0.02 240);
+  --secondary-foreground: oklch(0.35 0.05 250);
+  
+  /* Muted */
+  --muted: oklch(0.94 0.015 240);
+  --muted-foreground: oklch(0.5 0.03 250);
+  
+  /* Accent - Light blue highlight */
+  --accent: oklch(0.85 0.08 240);
+  --accent-foreground: oklch(0.3 0.05 250);
+  
+  /* Destructive / Error - Soft red */
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Borders & Inputs */
+  --border: oklch(0.88 0.02 240);
+  --input: oklch(0.95 0.01 240);
+  --ring: oklch(0.55 0.15 250);
+  
+  /* Sudoku-specific tokens */
+  --grid-line: oklch(0.75 0.03 240);
+  --grid-line-bold: oklch(0.5 0.08 250);
+  --cell-selected: oklch(0.85 0.1 240);
+  --cell-highlighted: oklch(0.92 0.05 240);
+  --cell-error: oklch(0.9 0.12 25);
+  --number-fixed: oklch(0.3 0.02 250);
+  --number-user: oklch(0.45 0.15 250);
+  --number-error: oklch(0.55 0.22 25);
+  
+  /* AI Coach */
+  --coach-bg: oklch(0.96 0.02 240 / 0.9);
+  --coach-border: oklch(0.85 0.05 240);
+  
+  /* Buttons */
+  --button-glass: oklch(0.98 0.01 240 / 0.7);
+  --button-shadow: 0 8px 32px oklch(0.5 0.1 250 / 0.15);
+  
+  /* Glassmorphism */
+  --glass-blur: 12px;
+  --glass-bg: oklch(0.99 0.005 240 / 0.6);
+  --glass-border: oklch(0.95 0.02 240 / 0.5);
+  
+  /* Claymorphism shadows - Enhanced */
+  --clay-shadow: 
+    8px 8px 16px oklch(0.65 0.03 240 / 0.35),
+    -8px -8px 16px oklch(1 0 0 / 0.9),
+    0 4px 20px oklch(0.5 0.05 250 / 0.1);
+  --clay-shadow-inset:
+    inset 3px 3px 6px oklch(0.75 0.02 240 / 0.35),
+    inset -3px -3px 6px oklch(1 0 0 / 0.6);
+  --clay-shadow-lg:
+    12px 12px 24px oklch(0.6 0.03 240 / 0.4),
+    -12px -12px 24px oklch(1 0 0 / 0.95),
+    0 8px 32px oklch(0.5 0.05 250 / 0.15);
+  
+  /* Radius */
+  --radius: 1rem;
+  --radius-soft: 1.5rem;
+  --radius-bubble: 2rem;
+  
+  /* Charts */
+  --chart-1: oklch(0.55 0.15 250);
+  --chart-2: oklch(0.65 0.12 200);
+  --chart-3: oklch(0.6 0.1 280);
+  --chart-4: oklch(0.7 0.15 150);
+  --chart-5: oklch(0.75 0.1 80);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.96 0.01 240);
+  --sidebar-foreground: oklch(0.25 0.02 250);
+  --sidebar-primary: oklch(0.55 0.15 250);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.9 0.03 240);
+  --sidebar-accent-foreground: oklch(0.3 0.05 250);
+  --sidebar-border: oklch(0.88 0.02 240);
+  --sidebar-ring: oklch(0.55 0.15 250);
 }
 
+/* ===== THEME: Kawaii Pink ===== */
+[data-theme="kawaii"] {
+  /* Core Colors - Soft pastels */
+  --background: oklch(0.97 0.03 350);
+  --foreground: oklch(0.35 0.08 350);
+  
+  /* Card */
+  --card: oklch(0.98 0.025 350 / 0.9);
+  --card-foreground: oklch(0.35 0.08 350);
+  
+  /* Popover */
+  --popover: oklch(0.99 0.02 350);
+  --popover-foreground: oklch(0.35 0.08 350);
+  
+  /* Primary - Cute pink */
+  --primary: oklch(0.7 0.15 350);
+  --primary-foreground: oklch(0.99 0 0);
+  
+  /* Secondary - Lavender */
+  --secondary: oklch(0.9 0.06 300);
+  --secondary-foreground: oklch(0.4 0.1 300);
+  
+  /* Muted */
+  --muted: oklch(0.94 0.03 350);
+  --muted-foreground: oklch(0.55 0.06 350);
+  
+  /* Accent - Light pink highlight */
+  --accent: oklch(0.92 0.08 350);
+  --accent-foreground: oklch(0.4 0.1 350);
+  
+  /* Destructive - Soft coral */
+  --destructive: oklch(0.65 0.18 20);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Borders & Inputs */
+  --border: oklch(0.88 0.05 350);
+  --input: oklch(0.96 0.03 350);
+  --ring: oklch(0.7 0.15 350);
+  
+  /* Sudoku-specific tokens */
+  --grid-line: oklch(0.85 0.06 350);
+  --grid-line-bold: oklch(0.65 0.12 350);
+  --cell-selected: oklch(0.9 0.1 350);
+  --cell-highlighted: oklch(0.95 0.05 350);
+  --cell-error: oklch(0.9 0.1 20);
+  --number-fixed: oklch(0.5 0.1 350);
+  --number-user: oklch(0.6 0.15 300);
+  --number-error: oklch(0.6 0.2 20);
+  
+  /* AI Coach */
+  --coach-bg: oklch(0.97 0.04 350 / 0.95);
+  --coach-border: oklch(0.85 0.08 350);
+  
+  /* Buttons - Bubble style */
+  --button-glass: oklch(0.95 0.05 350 / 0.8);
+  --button-shadow: 0 6px 20px oklch(0.7 0.15 350 / 0.25);
+  
+  /* Glassmorphism */
+  --glass-blur: 10px;
+  --glass-bg: oklch(0.98 0.03 350 / 0.7);
+  --glass-border: oklch(0.9 0.05 350 / 0.6);
+  
+  /* Soft bubble shadows - Enhanced */
+  --clay-shadow: 
+    6px 6px 14px oklch(0.7 0.1 350 / 0.35),
+    -6px -6px 14px oklch(1 0.03 350 / 0.95),
+    0 6px 24px oklch(0.65 0.12 350 / 0.2);
+  --clay-shadow-inset:
+    inset 3px 3px 6px oklch(0.8 0.06 350 / 0.45),
+    inset -3px -3px 6px oklch(1 0.02 350 / 0.7);
+  --clay-shadow-lg:
+    10px 10px 20px oklch(0.65 0.12 350 / 0.4),
+    -10px -10px 20px oklch(1 0.03 350 / 1),
+    0 10px 40px oklch(0.6 0.15 350 / 0.25);
+  
+  /* Extra rounded for kawaii */
+  --radius: 1.25rem;
+  --radius-soft: 2rem;
+  --radius-bubble: 3rem;
+  
+  /* Charts */
+  --chart-1: oklch(0.7 0.15 350);
+  --chart-2: oklch(0.7 0.12 300);
+  --chart-3: oklch(0.75 0.1 80);
+  --chart-4: oklch(0.7 0.1 200);
+  --chart-5: oklch(0.8 0.08 150);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.96 0.03 350);
+  --sidebar-foreground: oklch(0.35 0.08 350);
+  --sidebar-primary: oklch(0.7 0.15 350);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.92 0.05 350);
+  --sidebar-accent-foreground: oklch(0.4 0.1 350);
+  --sidebar-border: oklch(0.88 0.05 350);
+  --sidebar-ring: oklch(0.7 0.15 350);
+}
+
+/* ===== THEME: nFactorial ===== */
+[data-theme="nfactorial"] {
+  /* Core Colors - Clean whites with red accent */
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.2 0 0);
+  
+  /* Card */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0 0);
+  
+  /* Popover */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0 0);
+  
+  /* Primary - nFactorial Red from logo */
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.99 0 0);
+  
+  /* Secondary - Light gray */
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.3 0 0);
+  
+  /* Muted */
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  
+  /* Accent - Very light red tint */
+  --accent: oklch(0.95 0.03 25);
+  --accent-foreground: oklch(0.45 0.18 25);
+  
+  /* Destructive - Red */
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Borders & Inputs */
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.97 0 0);
+  --ring: oklch(0.55 0.22 25);
+  
+  /* Sudoku-specific tokens */
+  --grid-line: oklch(0.85 0 0);
+  --grid-line-bold: oklch(0.5 0.05 250);
+  --cell-selected: oklch(0.93 0.04 25);
+  --cell-highlighted: oklch(0.96 0.02 25);
+  --cell-error: oklch(0.92 0.08 25);
+  --number-fixed: oklch(0.25 0 0);
+  --number-user: oklch(0.55 0.22 25);
+  --number-error: oklch(0.5 0.25 25);
+  
+  /* AI Coach */
+  --coach-bg: oklch(0.98 0.01 25);
+  --coach-border: oklch(0.9 0.02 25);
+  
+  /* Buttons - Clean material style */
+  --button-glass: oklch(0.97 0 0);
+  --button-shadow: 0 2px 8px oklch(0.5 0 0 / 0.1);
+  
+  /* Minimal glass effect for Material */
+  --glass-blur: 8px;
+  --glass-bg: oklch(1 0 0 / 0.9);
+  --glass-border: oklch(0.92 0 0);
+  
+  /* Material elevation shadows - Enhanced */
+  --clay-shadow: 
+    0 2px 4px oklch(0.5 0 0 / 0.12),
+    0 6px 16px oklch(0.5 0 0 / 0.08),
+    0 12px 32px oklch(0.5 0.02 25 / 0.06);
+  --clay-shadow-inset:
+    inset 0 2px 4px oklch(0.75 0 0 / 0.12);
+  --clay-shadow-lg:
+    0 4px 8px oklch(0.5 0 0 / 0.15),
+    0 12px 24px oklch(0.5 0 0 / 0.1),
+    0 24px 48px oklch(0.5 0.03 25 / 0.08);
+  
+  /* Clean, precise radius */
+  --radius: 0.75rem;
+  --radius-soft: 1rem;
+  --radius-bubble: 1.5rem;
+  
+  /* Charts */
+  --chart-1: oklch(0.55 0.22 25);
+  --chart-2: oklch(0.5 0.15 250);
+  --chart-3: oklch(0.6 0.12 150);
+  --chart-4: oklch(0.7 0.1 80);
+  --chart-5: oklch(0.55 0.1 300);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.2 0 0);
+  --sidebar-primary: oklch(0.55 0.22 25);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.02 25);
+  --sidebar-accent-foreground: oklch(0.4 0.1 25);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.55 0.22 25);
+}
+
+/* ===== THEME: Dark Night ===== */
+[data-theme="dark"],
+.dark {
+  /* Core Colors - Deep slate with neon accents */
+  --background: oklch(0.15 0.02 250);
+  --foreground: oklch(0.95 0.01 240);
+  
+  /* Card with dark glass */
+  --card: oklch(0.2 0.02 250 / 0.8);
+  --card-foreground: oklch(0.95 0.01 240);
+  
+  /* Popover */
+  --popover: oklch(0.18 0.02 250 / 0.95);
+  --popover-foreground: oklch(0.95 0.01 240);
+  
+  /* Primary - Neon cyan/teal */
+  --primary: oklch(0.75 0.15 190);
+  --primary-foreground: oklch(0.15 0.02 250);
+  
+  /* Secondary */
+  --secondary: oklch(0.25 0.02 250);
+  --secondary-foreground: oklch(0.9 0.01 240);
+  
+  /* Muted */
+  --muted: oklch(0.22 0.02 250);
+  --muted-foreground: oklch(0.65 0.02 240);
+  
+  /* Accent - Neon blue */
+  --accent: oklch(0.6 0.18 250);
+  --accent-foreground: oklch(0.95 0.01 240);
+  
+  /* Destructive - Neon red/pink */
+  --destructive: oklch(0.6 0.22 15);
+  --destructive-foreground: oklch(0.95 0 0);
+  
+  /* Borders & Inputs */
+  --border: oklch(0.3 0.03 250);
+  --input: oklch(0.22 0.02 250);
+  --ring: oklch(0.75 0.15 190);
+  
+  /* Sudoku-specific tokens */
+  --grid-line: oklch(0.35 0.03 250);
+  --grid-line-bold: oklch(0.5 0.1 250);
+  --cell-selected: oklch(0.3 0.1 190);
+  --cell-highlighted: oklch(0.25 0.05 250);
+  --cell-error: oklch(0.3 0.12 15);
+  --number-fixed: oklch(0.85 0.01 240);
+  --number-user: oklch(0.75 0.15 190);
+  --number-error: oklch(0.65 0.22 15);
+  
+  /* AI Coach */
+  --coach-bg: oklch(0.2 0.03 250 / 0.9);
+  --coach-border: oklch(0.35 0.08 250);
+  
+  /* Buttons - Dark glass */
+  --button-glass: oklch(0.25 0.03 250 / 0.6);
+  --button-shadow: 0 8px 32px oklch(0.1 0.05 250 / 0.5);
+  
+  /* Dark glassmorphism */
+  --glass-blur: 16px;
+  --glass-bg: oklch(0.2 0.02 250 / 0.5);
+  --glass-border: oklch(0.35 0.05 250 / 0.4);
+  
+  /* Neon glow shadows - Enhanced */
+  --clay-shadow: 
+    0 4px 24px oklch(0.75 0.15 190 / 0.2),
+    0 0 50px oklch(0.6 0.18 250 / 0.15),
+    0 8px 40px oklch(0.1 0.05 250 / 0.6);
+  --clay-shadow-inset:
+    inset 0 2px 4px oklch(0.35 0.04 250 / 0.4),
+    inset 0 -2px 4px oklch(0.08 0.02 250 / 0.6);
+  --clay-shadow-lg:
+    0 8px 32px oklch(0.75 0.15 190 / 0.25),
+    0 0 80px oklch(0.6 0.2 250 / 0.2),
+    0 16px 64px oklch(0.1 0.05 250 / 0.7);
+  
+  /* Radius */
+  --radius: 1rem;
+  --radius-soft: 1.5rem;
+  --radius-bubble: 2rem;
+  
+  /* Charts - Neon palette */
+  --chart-1: oklch(0.75 0.15 190);
+  --chart-2: oklch(0.7 0.18 280);
+  --chart-3: oklch(0.65 0.2 330);
+  --chart-4: oklch(0.7 0.15 150);
+  --chart-5: oklch(0.75 0.12 80);
+  
+  /* Sidebar */
+  --sidebar: oklch(0.18 0.02 250);
+  --sidebar-foreground: oklch(0.95 0.01 240);
+  --sidebar-primary: oklch(0.75 0.15 190);
+  --sidebar-primary-foreground: oklch(0.15 0.02 250);
+  --sidebar-accent: oklch(0.25 0.03 250);
+  --sidebar-accent-foreground: oklch(0.9 0.01 240);
+  --sidebar-border: oklch(0.3 0.03 250);
+  --sidebar-ring: oklch(0.75 0.15 190);
+}
+
+/* ===== Tailwind Theme Mapping ===== */
 @theme inline {
+  --font-sans: 'Outfit', 'Outfit Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  
+  /* Core colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: var(--radius-soft);
+  --radius-3xl: var(--radius-bubble);
+  
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Sudoku-specific color utilities */
+  --color-grid-line: var(--grid-line);
+  --color-grid-line-bold: var(--grid-line-bold);
+  --color-cell-selected: var(--cell-selected);
+  --color-cell-highlighted: var(--cell-highlighted);
+  --color-cell-error: var(--cell-error);
+  --color-number-fixed: var(--number-fixed);
+  --color-number-user: var(--number-user);
+  --color-number-error: var(--number-error);
+  --color-coach-bg: var(--coach-bg);
+  --color-coach-border: var(--coach-border);
+  --color-button-glass: var(--button-glass);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ===== Base Styles ===== */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html {
+    font-size: 18px; /* Increased base font size */
+  }
+  
+  @media (max-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* Smooth theme transitions */
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Selection colors per theme */
+  ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ===== Component Utilities ===== */
+@layer utilities {
+  /* Glassmorphism utility */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+  }
+  
+  /* Claymorphism utility */
+  .clay {
+    box-shadow: var(--clay-shadow);
+  }
+  
+  .clay-lg {
+    box-shadow: var(--clay-shadow-lg);
+  }
+  
+  .clay-inset {
+    box-shadow: var(--clay-shadow-inset);
+  }
+  
+  /* Button glass effect */
+  .btn-glass {
+    background: var(--button-glass);
+    box-shadow: var(--button-shadow);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  /* Sudoku grid utilities */
+  .sudoku-cell {
+    border-color: var(--grid-line);
+  }
+  
+  .sudoku-cell-bold {
+    border-color: var(--grid-line-bold);
+  }
+  
+  .sudoku-selected {
+    background-color: var(--cell-selected);
+  }
+  
+  .sudoku-highlighted {
+    background-color: var(--cell-highlighted);
+  }
+  
+  .sudoku-error {
+    background-color: var(--cell-error);
+  }
+  
+  .number-fixed {
+    color: var(--number-fixed);
+  }
+  
+  .number-user {
+    color: var(--number-user);
+  }
+  
+  .number-error {
+    color: var(--number-error);
+  }
+  
+  /* AI Coach panel */
+  .coach-panel {
+    background: var(--coach-bg);
+    border: 1px solid var(--coach-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+  
+  /* Neon glow for dark theme */
+  [data-theme="dark"] .neon-glow {
+    box-shadow: 
+      0 0 5px var(--primary),
+      0 0 10px var(--primary),
+      0 0 20px var(--primary);
+  }
+  
+  [data-theme="dark"] .neon-text {
+    text-shadow: 
+      0 0 5px var(--primary),
+      0 0 10px var(--primary);
+  }
+  
+  /* Kawaii decorative elements */
+  [data-theme="kawaii"] .bubble-btn {
+    border-radius: var(--radius-bubble);
+    box-shadow: 
+      0 4px 0 oklch(0.6 0.12 350),
+      0 6px 20px oklch(0.7 0.15 350 / 0.3);
+    transform: translateY(0);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  
+  [data-theme="kawaii"] .bubble-btn:active {
+    transform: translateY(2px);
+    box-shadow: 
+      0 2px 0 oklch(0.6 0.12 350),
+      0 4px 10px oklch(0.7 0.15 350 / 0.2);
+  }
+  
+  /* Material ripple for nFactorial */
+  [data-theme="nfactorial"] .material-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  [data-theme="nfactorial"] .material-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, var(--primary) 0%, transparent 70%);
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  
+  [data-theme="nfactorial"] .material-btn:active::after {
+    opacity: 0.15;
+    transform: scale(2);
+  }
+}
+
+/* ===== Animation Keyframes ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary); }
+  50% { box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 30px var(--primary); }
+}
+
+/* Cloud drift animation */
+@keyframes cloud-drift {
+  0% { transform: translateX(-150px); }
+  100% { transform: translateX(calc(100vw + 150px)); }
+}
+
+/* Kawaii animations */
+@keyframes kawaii-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(5deg); }
+}
+
+@keyframes kawaii-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* nFactorial code float animation */
+@keyframes code-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.15; }
+  25% { transform: translateY(-20px) rotate(-5deg); opacity: 0.25; }
+  50% { transform: translateY(-10px) rotate(5deg); opacity: 0.2; }
+  75% { transform: translateY(-30px) rotate(-3deg); opacity: 0.15; }
+}
+
+/* Dark theme star twinkle */
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+  
+  .animate-cloud-drift {
+    animation: cloud-drift 40s linear infinite;
+  }
+  
+  .animate-kawaii-float {
+    animation: kawaii-float 4s ease-in-out infinite;
+  }
+  
+  .animate-sparkle {
+    animation: sparkle-twinkle 2s ease-in-out infinite;
+  }
+  
+  .animate-code-float {
+    animation: code-float 15s ease-in-out infinite;
+  }
+  
+  .animate-star-twinkle {
+    animation: star-twinkle 3s ease-in-out infinite;
+  }
+}
+
+/* (весь твой globals.css) */
+
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@layer utilities {
+  .animate-scale-in {
+    animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.5s ease forwards;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.4s ease forwards;
+  }
+  
+  /* Sharp sudoku cells */
+  .sudoku-grid-cell {
+    border-radius: 0 !important;
+  }
+}
+
+/* Добавь в конец твоего globals.css */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-pb {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Extra bottom padding for mobile pages */
+@media (max-width: 768px) {
+  main {
+    padding-bottom: 4.5rem;
+  }
 }
