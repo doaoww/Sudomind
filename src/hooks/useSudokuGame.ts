@@ -10,12 +10,11 @@ import { useTheme } from '@/components/theme-provider'
 import type { CellState } from '@/store/gameStore'
 
 export const DEV_DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: 'O(log n)',
-  medium: 'O(n)',
-  hard: 'O(n²)',
+  easy: 'O(log n)',   // легко — быстрый поиск
+  medium: 'O(n)',     // средне — линейный
+  hard: 'O(n²)',      // сложно — квадратичный
 }
 
-// ← Глобальный ref вне компонента — не пересоздаётся при рендере
 let globalInterval: ReturnType<typeof setInterval> | null = null
 
 function clearGlobalInterval() {
@@ -29,76 +28,63 @@ export function useSudokuGame() {
   const store = useGameStore()
   const supabase = createClient()
   const { setTheme } = useTheme()
-  // Флаг что компонент смонтирован
   const mountedRef = useRef(true)
 
   useEffect(() => {
     mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-    }
+    return () => { mountedRef.current = false }
   }, [])
 
-  // ← Один useEffect для таймера — следит за status
+  // Один таймер — следит за status
   useEffect(() => {
-    const currentStatus = store.status
-    const currentMode = store.gameMode
-
-    if (currentStatus === 'playing') {
-      // Очищаем предыдущий интервал
+    if (store.status === 'playing') {
       clearGlobalInterval()
-      
-      // Запускаем один интервал
-      globalInterval = setInterval(() => {
-        if (!mountedRef.current) {
-          clearGlobalInterval()
-          return
-        }
-        
-        const state = useGameStore.getState()
-        // Проверяем статус из store напрямую
-        if (state.status !== 'playing') {
-          clearGlobalInterval()
-          return
-        }
 
-        // Warmup mode — обратный отсчёт
+      globalInterval = setInterval(() => {
+        if (!mountedRef.current) { clearGlobalInterval(); return }
+
+        const state = useGameStore.getState()
+        if (state.status !== 'playing') { clearGlobalInterval(); return }
+
         if (state.gameMode === 'warmup' && state.timeLeft !== null) {
+          // Warmup — обратный отсчёт
           useGameStore.getState().decrementTimeLeft()
         } else if (state.gameMode !== 'zen') {
-          // Обычный таймер — только для не-zen
+          // Обычный таймер — не для zen
           useGameStore.setState((prev) => ({ timer: prev.timer + 1 }))
         }
+        // zen — таймер не идёт вообще
       }, 1000)
     } else {
       clearGlobalInterval()
     }
 
-    return () => {
-      clearGlobalInterval()
+    return () => { clearGlobalInterval() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.status])
+
+  // При timeout — сохраняем игру
+  useEffect(() => {
+    if (store.status === 'timeout') {
+      toast.error('⏰ Time is up! Brain warm-up failed.', { duration: 3000 })
+      saveGame()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.status])
 
-  // startGame — основная функция
   const startGame = useCallback(
     (difficulty: Difficulty, mode: GameMode = 'classic', silent = false) => {
-      // Сначала останавливаем интервал
       clearGlobalInterval()
-      
-      // Сбрасываем store
       store.resetGame()
       store.setDifficulty(difficulty)
       store.setGameMode(mode)
 
-      // Тема для dev mode
       if (mode === 'dev') setTheme('nfactorial')
 
-      // Генерируем пазл
-      // Warmup — всегда easy для мозговой разминки
+      // Warmup — всегда easy
       const actualDifficulty = mode === 'warmup' ? 'easy' : difficulty
       const { puzzle, solution } = generatePuzzle(actualDifficulty)
-      
+
       const board: CellState[][] = puzzle.map((row) =>
         row.map((value) => ({
           value,
@@ -114,26 +100,28 @@ export function useSudokuGame() {
 
       // Настройки по режиму
       if (mode === 'zen') {
-        useGameStore.setState({ lives: 999, maxLives: 999 })
+        // Zen: жизни бесконечные, таймер не идёт
+        useGameStore.setState({ lives: 999, maxLives: 999, timeLeft: null })
       } else if (mode === 'warmup') {
-        useGameStore.setState({ timeLeft: 180, lives: 999 }) // 3 минуты
+        // Warmup: 3 минуты, обычные жизни
+        useGameStore.setState({ lives: 3, maxLives: 3, timeLeft: 180 })
       } else {
+        // Classic / dev / academy / daily
         useGameStore.setState({ lives: 3, maxLives: 3, timeLeft: null })
       }
 
-      // Устанавливаем статус ПОСЛЕДНИМ — это триггерит useEffect таймера
+      // Статус последним — тригерит таймер
       store.setStatus('playing')
 
-      // ← silent = true при автостарте → нет toast
       if (!silent) {
         const label = mode === 'dev'
           ? DEV_DIFFICULTY_LABELS[difficulty]
           : { easy: '🌿 Easy', medium: '🔥 Medium', hard: '💀 Hard' }[difficulty]
-        const modeEmoji = {
+        const modePrefix: Record<GameMode, string> = {
           classic: '', zen: '🌊 Zen · ', warmup: '☀️ Warm-up · ',
           dev: '⚡ Dev · ', academy: '🎓 Academy · ', daily: '📅 Daily · ',
-        }[mode]
-        toast.success(`${modeEmoji}${label}`, { duration: 1500 })
+        }
+        toast.success(`${modePrefix[mode]}${label}`, { duration: 1500 })
       }
     },
     [store, setTheme]
@@ -178,6 +166,7 @@ export function useSudokuGame() {
       store.updateCell(row, col, { value: num, isError: true, isCorrect: false, notes: [] })
 
       if (gameMode === 'zen') {
+        // Zen: ошибки не считаем, жизни не теряем
         toast.info('Keep going! 🌊', { duration: 800 })
         return
       }
@@ -185,7 +174,7 @@ export function useSudokuGame() {
       store.loseLife()
       const livesLeft = useGameStore.getState().lives
       const msg = gameMode === 'dev'
-        ? `🐛 Bug detected! ${livesLeft} deploys left`
+        ? `🐛 Bug detected! ${livesLeft} deployment attempts left`
         : `Wrong! ${livesLeft} ❤️ left`
       toast.error(msg, { duration: 1500 })
       return
@@ -217,7 +206,7 @@ export function useSudokuGame() {
     if (isComplete(finalBoard.map((r) => r.map((c) => c.value)), solution)) {
       clearGlobalInterval()
       store.setStatus('won')
-      const winMsg = store.gameMode === 'dev' ? '🚀 Deployed!' : '🎉 Puzzle solved!'
+      const winMsg = store.gameMode === 'dev' ? '🚀 Deployed to production!' : '🎉 Puzzle solved!'
       toast.success(winMsg, { duration: 3000 })
       saveGame()
     }
@@ -251,29 +240,37 @@ export function useSudokuGame() {
     store.setHighlightedCells(getHighlightedCells(row, col))
     store.incrementHints()
     store.addScore(-5)
-    toast.info(`💡 [${row + 1},${col + 1}] = ${val}`, { duration: 1500 })
+
+    const hintMsg = store.gameMode === 'dev'
+      ? `🔍 Debug: [${row + 1},${col + 1}] = ${val}`
+      : `💡 [${row + 1},${col + 1}] = ${val}`
+    toast.info(hintMsg, { duration: 1500 })
   }, [store])
 
+  // Сохранение игры — один чистый запрос к profiles
   const saveGame = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
       const state = useGameStore.getState()
 
+      // 1. Сохраняем запись игры
       await supabase.from('games').insert({
         user_id: user.id,
         puzzle: state.board.flat().map((c) => (c.isFixed ? (c.value ?? 0) : 0)).join(''),
         solution: state.solution.flat().join(''),
         difficulty: state.difficulty,
         game_mode: state.gameMode,
-        completed: true,
+        completed: state.status === 'won',
         time_seconds: state.timer,
-        errors: Math.max(0, 3 - state.lives),
+        errors: Math.max(0, state.maxLives - state.lives),
         hints_used: state.hintsUsed,
         score: state.score,
         completed_at: new Date().toISOString(),
       })
 
+      // 2. Обновляем user_activity (upsert)
       const today = new Date().toISOString().split('T')[0]
       const { data: existing } = await supabase
         .from('user_activity')
@@ -284,7 +281,7 @@ export function useSudokuGame() {
 
       if (existing) {
         await supabase.from('user_activity').update({
-          puzzles_solved: existing.puzzles_solved + 1,
+          puzzles_solved: existing.puzzles_solved + (state.status === 'won' ? 1 : 0),
           total_score: existing.total_score + state.score,
           total_time_seconds: existing.total_time_seconds + state.timer,
         }).eq('id', existing.id)
@@ -292,32 +289,34 @@ export function useSudokuGame() {
         await supabase.from('user_activity').insert({
           user_id: user.id,
           date: today,
-          puzzles_solved: 1,
+          puzzles_solved: state.status === 'won' ? 1 : 0,
           total_score: state.score,
           total_time_seconds: state.timer,
           difficulty: state.difficulty,
         })
       }
 
-      await supabase.from('profiles').update({
-        total_solved: store.score > 0 ? undefined : undefined,
-        last_played_at: new Date().toISOString(),
-      }).eq('id', user.id)
+      // 3. Обновляем профиль — один запрос
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('total_solved, total_points, streak')
+        .eq('id', user.id)
+        .single()
 
-      const { data: p } = await supabase
-        .from('profiles').select('total_solved, total_points, streak').eq('id', user.id).single()
-      if (p) {
+      if (profile) {
         await supabase.from('profiles').update({
-          total_solved: (p.total_solved || 0) + 1,
-          total_points: (p.total_points || 0) + state.score,
-          streak: (p.streak || 0) + 1,
+          total_solved: profile.total_solved + (state.status === 'won' ? 1 : 0),
+          total_points: profile.total_points + state.score,
+          streak: profile.streak + (state.status === 'won' ? 1 : 0),
+          last_played_at: new Date().toISOString(),
         }).eq('id', user.id)
       }
     } catch (e) {
-      console.error('saveGame:', e)
+      console.error('saveGame error:', e)
     }
-  }, [supabase, store])
+  }, [supabase])
 
+  // Клавиатура
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (store.status !== 'playing') return
@@ -339,12 +338,14 @@ export function useSudokuGame() {
     return () => window.removeEventListener('keydown', handler)
   }, [store, inputNumber, eraseCell, selectCell])
 
-  const formatTime = (s: number): string => {
-    if (store.gameMode === 'zen') return '∞'
+  // formatTime — читает gameMode напрямую из store, нет гонки
+  const formatTime = useCallback((s: number): string => {
+    const mode = useGameStore.getState().gameMode
+    if (mode === 'zen') return '∞'
     const m = Math.floor(s / 60).toString().padStart(2, '0')
     const sec = (s % 60).toString().padStart(2, '0')
     return `${m}:${sec}`
-  }
+  }, [])
 
   return { ...store, startGame, selectCell, inputNumber, eraseCell, useHint, formatTime }
 }

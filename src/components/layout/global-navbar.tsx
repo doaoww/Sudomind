@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Gamepad2, LayoutDashboard, Trophy, CalendarDays, Heart, Timer, Star } from 'lucide-react'
+import { Menu, X, Gamepad2, LayoutDashboard, Trophy, CalendarDays } from 'lucide-react'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { UserMenu } from '@/components/layout/user-menu'
-import { Lives } from '@/components/sudoku/lives'
 import { cn } from '@/lib/utils'
 
-// Навигация для авторизованного пользователя
+
+
 const AUTH_LINKS = [
   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: '/game', label: 'Play', icon: <Gamepad2 className="w-4 h-4" /> },
@@ -18,8 +18,7 @@ const AUTH_LINKS = [
   { href: '/daily', label: 'Daily', icon: <CalendarDays className="w-4 h-4" /> },
 ]
 
-// Навигация для гостя (лендинг)
-const GUEST_LINKS: { href: string; label: string; icon?: React.ReactNode }[] = [
+const GUEST_LINKS = [
   { href: '/#features', label: 'Features' },
   { href: '/#themes', label: 'Themes' },
   { href: '/#pricing', label: 'Pricing' },
@@ -33,26 +32,13 @@ const MOBILE_LINKS = [
   { href: '/daily', label: 'Daily', icon: <CalendarDays className="w-5 h-5" /> },
 ]
 
-interface GameStats {
-  lives: number
-  maxLives: number
-  score: number
-  timer: number
-  timeLeft: number | null
-  status: string
-  formatTime: (s: number) => string
-  gameMode: string
-}
-
 interface GlobalNavbarProps {
-  gameStats?: GameStats
   isGuest?: boolean
 }
 
-export function GlobalNavbar({ gameStats, isGuest = false }: GlobalNavbarProps) {
+export function GlobalNavbar({ isGuest = false }: GlobalNavbarProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const isPlaying = gameStats?.status === 'playing'
 
   useEffect(() => setOpen(false), [pathname])
 
@@ -63,7 +49,7 @@ export function GlobalNavbar({ gameStats, isGuest = false }: GlobalNavbarProps) 
       <nav className="glass border-b border-border/30 sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-4">
 
-          {/* LEFT: Logo */}
+          {/* Logo */}
           <Link href={isGuest ? '/' : '/dashboard'} className="flex items-center gap-2 flex-shrink-0">
             <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-black">S</span>
@@ -73,71 +59,33 @@ export function GlobalNavbar({ gameStats, isGuest = false }: GlobalNavbarProps) 
             </span>
           </Link>
 
-          {/* CENTER */}
+          {/* Nav links */}
           <div className="hidden md:flex items-center flex-1 justify-center">
-            {isPlaying && gameStats ? (
-              // Игровая статистика по центру
-              <div className="flex items-center gap-5">
-                {gameStats.gameMode !== 'zen' && (
-                  <div className="flex items-center gap-1.5 text-sm font-mono font-semibold">
-                    <Timer className="w-3.5 h-3.5 text-muted-foreground" />
-                    {/* Warmup — обратный отсчёт */}
-                    {gameStats.gameMode === 'warmup' && gameStats.timeLeft !== null
-                      ? <span className={cn(
-                          'font-mono font-black',
-                          (gameStats.timeLeft ?? 0) < 60 ? 'text-red-500' : 'text-foreground'
-                        )}>
-                          {gameStats.formatTime(gameStats.timeLeft ?? 0)}
-                        </span>
-                      : gameStats.formatTime(gameStats.timer)
-                    }
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5 text-sm">
-                  <Star className="w-3.5 h-3.5 text-yellow-500" />
-                  <span className="font-bold">{gameStats.score}</span>
-                </div>
-                {gameStats.gameMode !== 'zen' && gameStats.gameMode !== 'warmup' && (
-                  <Lives lives={gameStats.lives} maxLives={gameStats.maxLives} />
-                )}
-                {gameStats.gameMode === 'warmup' && (
-                  <span className="text-xs font-semibold text-orange-500">☀️ Warm-up</span>
-                )}
-                {gameStats.gameMode === 'zen' && (
-                  <span className="text-xs font-semibold text-blue-400">🌊 Zen</span>
-                )}
-                {gameStats.gameMode === 'dev' && (
-                  <span className="text-xs font-mono font-bold text-red-500">⚡ Dev</span>
-                )}
-              </div>
-            ) : (
-              // Обычная навигация
-              <div className="flex items-center gap-1 bg-secondary/30 rounded-2xl p-1">
-                {links.map((link) => {
-                  const isActive = 'icon' in link
-                    ? pathname === link.href || pathname.startsWith(link.href + '/')
-                    : false
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                      )}
-                    >
-                      {'icon' in link && link.icon}
-                      {link.label}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
+            <div className="flex items-center gap-1 bg-secondary/30 rounded-2xl p-1">
+              {links.map((link) => {
+                const isActive = 'icon' in link
+                  ? pathname === link.href || pathname.startsWith(link.href + '/')
+                  : false
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                    )}
+                  >
+                    {'icon' in link && (link.icon as React.ReactNode)}
+                    {link.label}
+                  </Link>
+                )
+              })}
+            </div>
           </div>
 
-          {/* RIGHT */}
+          {/* Right */}
           <div className="flex items-center gap-2">
             <div className="hidden md:block">
               <ThemeSwitcher />
@@ -177,7 +125,7 @@ export function GlobalNavbar({ gameStats, isGuest = false }: GlobalNavbarProps) 
             >
               <div className="px-4 py-3 space-y-1">
                 {(isGuest ? [
-                  { href: '/auth/login', label: 'Sign In', icon: null },
+                  { href: '/auth/login', label: 'Sign In' },
                   { href: '/leaderboard', label: 'Leaderboard', icon: <Trophy className="w-4 h-4" /> },
                   { href: '/daily', label: 'Daily Challenge', icon: <CalendarDays className="w-4 h-4" /> },
                 ] : AUTH_LINKS).map((link) => (
@@ -204,7 +152,7 @@ export function GlobalNavbar({ gameStats, isGuest = false }: GlobalNavbarProps) 
         </AnimatePresence>
       </nav>
 
-      {/* Mobile bottom nav — только для авторизованных */}
+      {/* Mobile bottom nav */}
       {!isGuest && (
         <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden glass border-t border-border/30">
           <div className="flex items-center justify-around px-2 py-1.5">
