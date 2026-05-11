@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { CalendarDays, Trophy, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
@@ -22,9 +22,15 @@ function getDailySeed(): string {
 export default function DailyPage() {
   const { startGame, status, lives, maxLives, score, timer, difficulty, formatTime } = useSudokuGame()
 
-  useEffect(() => {
-    startGame('medium')
-  }, [])
+  // Найди useEffect и замени:
+useEffect(() => {
+  if (hasStarted.current) return
+  hasStarted.current = true
+  startGame('medium', 'daily', true) // ← silent = true
+}, [])
+
+// Добавь ref:
+const hasStarted = useRef(false)
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric'

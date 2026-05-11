@@ -1,25 +1,30 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { GameClient } from './game-client'
 
-export default async function GamePage() {
+interface Props {
+  searchParams: { mode?: string; difficulty?: string }
+}
+
+export default async function GamePage({ searchParams }: Props) {
+  const { mode, difficulty } = await searchParams 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/auth/login')
+  let profile = null
+  if (user) {
+    const { data } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    profile = data
+  }
 
-  const { data: profile } = await supabase
-    .from('leaderboard')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  const { data: leaderboard } = await supabase
-    .from('leaderboard')
-    .select('id, full_name, username, avatar_url, total_points, streak, city_rank, level')
-    .eq('city', 'Almaty')
-    .order('city_rank', { ascending: true })
-    .limit(10)
-
-  return <GameClient profile={profile} leaderboard={leaderboard ?? []} userId={user.id} />
+  return (
+    <GameClient
+      profile={profile}
+      userId={user?.id}
+      gameMode={mode}
+    />
+  )
 }

@@ -15,58 +15,90 @@ export const DEV_DIFFICULTY_LABELS: Record<Difficulty, string> = {
   hard: 'O(n²)',
 }
 
+// ← Глобальный ref вне компонента — не пересоздаётся при рендере
+let globalInterval: ReturnType<typeof setInterval> | null = null
+
+function clearGlobalInterval() {
+  if (globalInterval !== null) {
+    clearInterval(globalInterval)
+    globalInterval = null
+  }
+}
+
 export function useSudokuGame() {
   const store = useGameStore()
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // ← Ключевой фикс: храним актуальный статус в ref чтобы избежать stale closure
-  const statusRef = useRef(store.status)
   const supabase = createClient()
   const { setTheme } = useTheme()
+  // Флаг что компонент смонтирован
+  const mountedRef = useRef(true)
 
-  // Sync statusRef with store
   useEffect(() => {
-    statusRef.current = store.status
-  }, [store.status])
-
-  const stopTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
     }
   }, [])
 
-  // ← Таймер запускается ОДИН раз при статусе playing
-  // Использует setState с функцией чтобы не было stale closure
+  // ← Один useEffect для таймера — следит за status
   useEffect(() => {
-    if (store.status === 'playing') {
-      // Сначала останавливаем предыдущий если был
-      stopTimer()
-      timerRef.current = setInterval(() => {
-        // Functional update — не зависит от замыкания
-        useGameStore.setState((prev) => ({ timer: prev.timer + 1 }))
+    const currentStatus = store.status
+    const currentMode = store.gameMode
+
+    if (currentStatus === 'playing') {
+      // Очищаем предыдущий интервал
+      clearGlobalInterval()
+      
+      // Запускаем один интервал
+      globalInterval = setInterval(() => {
+        if (!mountedRef.current) {
+          clearGlobalInterval()
+          return
+        }
+        
+        const state = useGameStore.getState()
+        // Проверяем статус из store напрямую
+        if (state.status !== 'playing') {
+          clearGlobalInterval()
+          return
+        }
+
+        // Warmup mode — обратный отсчёт
+        if (state.gameMode === 'warmup' && state.timeLeft !== null) {
+          useGameStore.getState().decrementTimeLeft()
+        } else if (state.gameMode !== 'zen') {
+          // Обычный таймер — только для не-zen
+          useGameStore.setState((prev) => ({ timer: prev.timer + 1 }))
+        }
       }, 1000)
     } else {
-      stopTimer()
+      clearGlobalInterval()
     }
 
     return () => {
-      stopTimer()
+      clearGlobalInterval()
     }
-  // ← ТОЛЬКО store.status в зависимостях — не stopTimer, не store
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.status])
 
+  // startGame — основная функция
   const startGame = useCallback(
     (difficulty: Difficulty, mode: GameMode = 'classic', silent = false) => {
-      // Останавливаем таймер до сброса
-      stopTimer()
+      // Сначала останавливаем интервал
+      clearGlobalInterval()
+      
+      // Сбрасываем store
       store.resetGame()
       store.setDifficulty(difficulty)
       store.setGameMode(mode)
 
+      // Тема для dev mode
       if (mode === 'dev') setTheme('nfactorial')
 
-      const { puzzle, solution } = generatePuzzle(difficulty)
+      // Генерируем пазл
+      // Warmup — всегда easy для мозговой разминки
+      const actualDifficulty = mode === 'warmup' ? 'easy' : difficulty
+      const { puzzle, solution } = generatePuzzle(actualDifficulty)
+      
       const board: CellState[][] = puzzle.map((row) =>
         row.map((value) => ({
           value,
@@ -80,128 +112,116 @@ export function useSudokuGame() {
       store.setBoard(board)
       store.setSolution(solution)
 
+      // Настройки по режиму
       if (mode === 'zen') {
-        useGameStore.setState({ lives: 999 })
+        useGameStore.setState({ lives: 999, maxLives: 999 })
+      } else if (mode === 'warmup') {
+        useGameStore.setState({ timeLeft: 180, lives: 999 }) // 3 минуты
+      } else {
+        useGameStore.setState({ lives: 3, maxLives: 3, timeLeft: null })
       }
 
-      // ← setStatus ПОСЛЕ всего — это триггерит useEffect таймера
+      // Устанавливаем статус ПОСЛЕДНИМ — это триггерит useEffect таймера
       store.setStatus('playing')
 
-      // ← silent = true при автостарте, чтобы не было двойного toast
+      // ← silent = true при автостарте → нет toast
       if (!silent) {
-        const label =
-          mode === 'dev'
-            ? DEV_DIFFICULTY_LABELS[difficulty]
-            : { easy: '🌿 Easy', medium: '🔥 Medium', hard: '💀 Hard' }[difficulty]
-        toast.success(`${label}`, { duration: 1200 })
+        const label = mode === 'dev'
+          ? DEV_DIFFICULTY_LABELS[difficulty]
+          : { easy: '🌿 Easy', medium: '🔥 Medium', hard: '💀 Hard' }[difficulty]
+        const modeEmoji = {
+          classic: '', zen: '🌊 Zen · ', warmup: '☀️ Warm-up · ',
+          dev: '⚡ Dev · ', academy: '🎓 Academy · ', daily: '📅 Daily · ',
+        }[mode]
+        toast.success(`${modeEmoji}${label}`, { duration: 1500 })
       }
     },
-    [store, setTheme, stopTimer]
+    [store, setTheme]
   )
 
-  const selectCell = useCallback(
-    (row: number, col: number) => {
-      store.setSelectedCell([row, col])
-      store.setHighlightedCells(getHighlightedCells(row, col))
-      const cellValue = store.board[row][col].value
-      if (cellValue) store.setSelectedNumber(cellValue)
-    },
-    [store]
-  )
+  const selectCell = useCallback((row: number, col: number) => {
+    store.setSelectedCell([row, col])
+    store.setHighlightedCells(getHighlightedCells(row, col))
+    const val = store.board[row][col].value
+    if (val) store.setSelectedNumber(val)
+  }, [store])
 
-  const inputNumber = useCallback(
-    (num: number) => {
-      const { selectedCell, board, solution, isNoteMode, status, gameMode } = store
-      if (!selectedCell || status !== 'playing') return
+  const inputNumber = useCallback((num: number) => {
+    const { selectedCell, board, solution, isNoteMode, status, gameMode } = store
+    if (!selectedCell || status !== 'playing') return
 
-      const [row, col] = selectedCell
-      const cell = board[row][col]
+    const [row, col] = selectedCell
+    const cell = board[row][col]
 
-      if (cell.isFixed || cell.isCorrect) {
-        toast.info(
-          gameMode === 'dev' ? '🐛 Cannot modify deployed code!' : 'Cell is locked 🔒',
-          { duration: 1200 }
-        )
-        return
-      }
-
-      if (isNoteMode) {
-        const notes = cell.notes.includes(num)
-          ? cell.notes.filter((n) => n !== num)
-          : [...cell.notes, num].sort()
-        store.updateCell(row, col, { notes, isError: false })
-        return
-      }
-
-      const correct = validateCell(
-        board.map((r) => r.map((c) => c.value)),
-        solution,
-        row,
-        col,
-        num
+    if (cell.isFixed || cell.isCorrect) {
+      toast.info(
+        gameMode === 'dev' ? '🐛 Cannot modify deployed code!' : 'Cell is locked 🔒',
+        { duration: 1000 }
       )
+      return
+    }
 
-      if (!correct) {
-        store.updateCell(row, col, {
-          value: num, isError: true, isCorrect: false, notes: [],
-        })
+    if (isNoteMode) {
+      const notes = cell.notes.includes(num)
+        ? cell.notes.filter((n) => n !== num)
+        : [...cell.notes, num].sort()
+      store.updateCell(row, col, { notes, isError: false })
+      return
+    }
 
-        if (gameMode === 'zen') {
-          toast.info('Keep trying! 🌊', { duration: 1000 })
-          return
-        }
+    const correct = validateCell(
+      board.map((r) => r.map((c) => c.value)),
+      solution, row, col, num
+    )
 
-        store.loseLife()
-        const livesLeft = useGameStore.getState().lives
-        toast.error(
-          gameMode === 'dev'
-            ? `🐛 Bug! ${livesLeft} deploys left`
-            : `Wrong! ${livesLeft} ❤️ left`,
-          { duration: 1800 }
-        )
+    if (!correct) {
+      store.updateCell(row, col, { value: num, isError: true, isCorrect: false, notes: [] })
+
+      if (gameMode === 'zen') {
+        toast.info('Keep going! 🌊', { duration: 800 })
         return
       }
 
-      store.updateCell(row, col, {
-        value: num, isError: false, isCorrect: true, notes: [],
-      })
+      store.loseLife()
+      const livesLeft = useGameStore.getState().lives
+      const msg = gameMode === 'dev'
+        ? `🐛 Bug detected! ${livesLeft} deploys left`
+        : `Wrong! ${livesLeft} ❤️ left`
+      toast.error(msg, { duration: 1500 })
+      return
+    }
 
-      // Clear notes in related cells
-      const boxRow = Math.floor(row / 3) * 3
-      const boxCol = Math.floor(col / 3) * 3
-      const related: [number, number][] = []
-      for (let i = 0; i < 9; i++) {
-        related.push([row, i], [i, col])
-      }
-      for (let r = boxRow; r < boxRow + 3; r++) {
-        for (let c = boxCol; c < boxCol + 3; c++) related.push([r, c])
-      }
-      related.forEach(([r, c]) => {
-        const cur = useGameStore.getState().board[r][c]
-        if (cur.notes.includes(num)) {
-          store.updateCell(r, c, { notes: cur.notes.filter((n) => n !== num) })
-        }
-      })
+    store.updateCell(row, col, { value: num, isError: false, isCorrect: true, notes: [] })
 
-      const pts = { easy: 10, medium: 20, hard: 30 }[store.difficulty]
-      store.addScore(pts)
-      toast.success(
-        gameMode === 'dev' ? `✅ +${pts} XP` : `+${pts} ⭐`,
-        { duration: 900 }
-      )
-
-      const finalBoard = useGameStore.getState().board
-      if (isComplete(finalBoard.map((r) => r.map((c) => c.value)), solution)) {
-        store.setStatus('won')
-        toast.success(
-          gameMode === 'dev' ? '🚀 Deployed!' : '🎉 Solved!',
-          { duration: 3000 }
-        )
-        saveGame()
+    // Очищаем заметки в связанных ячейках
+    const boxRow = Math.floor(row / 3) * 3
+    const boxCol = Math.floor(col / 3) * 3
+    const related: [number, number][] = []
+    for (let i = 0; i < 9; i++) {
+      related.push([row, i], [i, col])
+    }
+    for (let r = boxRow; r < boxRow + 3; r++) {
+      for (let c = boxCol; c < boxCol + 3; c++) related.push([r, c])
+    }
+    related.forEach(([r, c]) => {
+      const cur = useGameStore.getState().board[r][c]
+      if (cur.notes.includes(num)) {
+        store.updateCell(r, c, { notes: cur.notes.filter((n) => n !== num) })
       }
-    },
-    [store]
-  )
+    })
+
+    const pts = { easy: 10, medium: 20, hard: 30 }[store.difficulty]
+    store.addScore(pts)
+
+    const finalBoard = useGameStore.getState().board
+    if (isComplete(finalBoard.map((r) => r.map((c) => c.value)), solution)) {
+      clearGlobalInterval()
+      store.setStatus('won')
+      const winMsg = store.gameMode === 'dev' ? '🚀 Deployed!' : '🎉 Puzzle solved!'
+      toast.success(winMsg, { duration: 3000 })
+      saveGame()
+    }
+  }, [store])
 
   const eraseCell = useCallback(() => {
     const { selectedCell, board } = store
@@ -219,9 +239,7 @@ export function useSudokuGame() {
     const candidates: [number, number][] = []
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        if (!board[r][c].isFixed && !board[r][c].isCorrect) {
-          candidates.push([r, c])
-        }
+        if (!board[r][c].isFixed && !board[r][c].isCorrect) candidates.push([r, c])
       }
     }
     if (!candidates.length) return
@@ -233,7 +251,7 @@ export function useSudokuGame() {
     store.setHighlightedCells(getHighlightedCells(row, col))
     store.incrementHints()
     store.addScore(-5)
-    toast.info(`💡 [${row + 1},${col + 1}] = ${val} (-5)`, { duration: 2000 })
+    toast.info(`💡 [${row + 1},${col + 1}] = ${val}`, { duration: 1500 })
   }, [store])
 
   const saveGame = useCallback(async () => {
@@ -247,10 +265,12 @@ export function useSudokuGame() {
         puzzle: state.board.flat().map((c) => (c.isFixed ? (c.value ?? 0) : 0)).join(''),
         solution: state.solution.flat().join(''),
         difficulty: state.difficulty,
+        game_mode: state.gameMode,
         completed: true,
         time_seconds: state.timer,
         errors: Math.max(0, 3 - state.lives),
         hints_used: state.hintsUsed,
+        score: state.score,
         completed_at: new Date().toISOString(),
       })
 
@@ -279,24 +299,24 @@ export function useSudokuGame() {
         })
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_solved, total_points, streak')
-        .eq('id', user.id)
-        .single()
+      await supabase.from('profiles').update({
+        total_solved: store.score > 0 ? undefined : undefined,
+        last_played_at: new Date().toISOString(),
+      }).eq('id', user.id)
 
-      if (profile) {
+      const { data: p } = await supabase
+        .from('profiles').select('total_solved, total_points, streak').eq('id', user.id).single()
+      if (p) {
         await supabase.from('profiles').update({
-          total_solved: (profile.total_solved || 0) + 1,
-          total_points: (profile.total_points || 0) + state.score,
-          streak: (profile.streak || 0) + 1,
-          last_played_at: new Date().toISOString(),
+          total_solved: (p.total_solved || 0) + 1,
+          total_points: (p.total_points || 0) + state.score,
+          streak: (p.streak || 0) + 1,
         }).eq('id', user.id)
       }
     } catch (e) {
-      console.error('saveGame error:', e)
+      console.error('saveGame:', e)
     }
-  }, [supabase])
+  }, [supabase, store])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -306,36 +326,25 @@ export function useSudokuGame() {
       if (e.key === 'n' || e.key === 'N') store.toggleNoteMode()
       const { selectedCell } = store
       if (!selectedCell) return
-      const [row, col] = selectedCell
+      const [r, c] = selectedCell
       const moves: Record<string, [number, number]> = {
-        ArrowUp: [Math.max(0, row - 1), col],
-        ArrowDown: [Math.min(8, row + 1), col],
-        ArrowLeft: [row, Math.max(0, col - 1)],
-        ArrowRight: [row, Math.min(8, col + 1)],
+        ArrowUp: [Math.max(0, r - 1), c],
+        ArrowDown: [Math.min(8, r + 1), c],
+        ArrowLeft: [r, Math.max(0, c - 1)],
+        ArrowRight: [r, Math.min(8, c + 1)],
       }
-      if (moves[e.key]) {
-        e.preventDefault()
-        selectCell(...moves[e.key])
-      }
+      if (moves[e.key]) { e.preventDefault(); selectCell(...moves[e.key]) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [store, inputNumber, eraseCell, selectCell])
 
-  const formatTime = (s: number) => {
+  const formatTime = (s: number): string => {
     if (store.gameMode === 'zen') return '∞'
     const m = Math.floor(s / 60).toString().padStart(2, '0')
     const sec = (s % 60).toString().padStart(2, '0')
     return `${m}:${sec}`
   }
 
-  return {
-    ...store,
-    startGame,
-    selectCell,
-    inputNumber,
-    eraseCell,
-    useHint,
-    formatTime,
-  }
+  return { ...store, startGame, selectCell, inputNumber, eraseCell, useHint, formatTime }
 }

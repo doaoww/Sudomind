@@ -7,6 +7,7 @@ import { ThemeBackground } from '@/components/theme-backgrounds'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { MapPin, Globe, Flag, Flame, Trophy, Home, CalendarDays, Brain } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { GlobalNavbar } from '@/components/layout/global-navbar'
 import Link from 'next/link'
 
 type Tab = 'almaty' | 'kazakhstan' | 'global'
@@ -67,40 +68,8 @@ export default function LeaderboardPage() {
       <div className="relative z-10">
 
         {/* Full nav — same as landing */}
-        <nav className="glass border-b border-border/40 sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-black text-lg">S</span>
-              </div>
-              <span className="font-bold text-lg hidden sm:block">
-                Sudo<span className="text-primary">mind</span>
-              </span>
-            </Link>
-
-            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-              <Link href="/#features" className="hover:text-foreground transition-colors">Features</Link>
-              <Link href="/#themes" className="hover:text-foreground transition-colors">Themes</Link>
-              <Link href="/leaderboard" className="text-foreground font-semibold">Leaderboard</Link>
-              <Link href="/#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-              <Link href="/daily" className="hover:text-foreground transition-colors flex items-center gap-1">
-                <CalendarDays className="w-3.5 h-3.5" />
-                Daily
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <ThemeSwitcher />
-              <Link href="/auth/login" className="hidden md:block px-4 py-2 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
-                Sign In
-              </Link>
-              <Link href="/game" className="px-4 py-2 rounded-2xl glass border border-primary/20 text-sm font-semibold hover:bg-accent transition-colors">
-                Play
-              </Link>
-            </div>
-          </div>
-        </nav>
-
+        <GlobalNavbar />
+        
         <main className="max-w-4xl mx-auto px-6 py-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
