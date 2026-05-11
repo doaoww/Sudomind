@@ -247,8 +247,8 @@
   --cell-highlighted: oklch(0.96 0.02 25);
   --cell-error: oklch(0.92 0.08 25);
   --number-fixed: oklch(0.25 0 0);
-  --number-user: oklch(0.55 0.22 25);
-  --number-error: oklch(0.5 0.25 25);
+  --number-user: oklch(0.45 0.18 142);   /* неоновый зелёный для правильных */
+--number-error: oklch(0.65 0.28 25);
   
   /* AI Coach */
   --coach-bg: oklch(0.98 0.01 25);
@@ -750,5 +750,20 @@
 @media (max-width: 768px) {
   main {
     padding-bottom: 4.5rem;
+  }
+}
+
+@keyframes terminal-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.6; }
+  97% { opacity: 1; }
+}
+
+@layer utilities {
+  [data-theme="nfactorial"] .number-error {
+    animation: terminal-flicker 3s ease-in-out infinite;
   }
 }

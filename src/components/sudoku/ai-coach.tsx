@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, Sparkles, ChevronDown, ChevronUp, Code2 } from 'lucide-react'
+import { Bot, Sparkles, ChevronDown, ChevronUp, Code2, GraduationCap, BookOpen } from 'lucide-react'
 import { useSudokuGame } from '@/hooks/useSudokuGame'
 
 export function AICoach() {
@@ -14,12 +14,10 @@ export function AICoach() {
   const getHint = useCallback(async () => {
     setIsLoading(true)
 
-    // Build real board analysis to send to AI
     const boardStr = board
       .map((r) => r.map((c) => c.value ?? 0).join(''))
       .join('\n')
 
-    // Find cells with errors
     const errorCells: string[] = []
     const emptyCells: string[] = []
     for (let r = 0; r < 9; r++) {
@@ -29,7 +27,6 @@ export function AICoach() {
       }
     }
 
-    // Find rows/cols/boxes with only 1 missing
     const analysisHints: string[] = []
     for (let i = 0; i < 9; i++) {
       const rowVals = board[i].map((c) => c.value).filter(Boolean)
@@ -75,33 +72,94 @@ export function AICoach() {
       const data = await res.json()
       setHint(data.hint)
     } catch {
-      setHint('Look for rows, columns, or boxes with only one empty cell!')
+      setHint(
+        gameMode === 'academy'
+          ? '🎓 Technique: Hidden Single\n💡 Look for a box where only one cell can hold a specific number.\n📝 Your task: Scan the top-left box and find where the number 1 can go.'
+          : 'Look for rows, columns, or boxes with only one empty cell!'
+      )
     } finally {
       setIsLoading(false)
     }
   }, [board, selectedCell, difficulty, gameMode])
 
   const isDev = gameMode === 'dev'
+  const isAcademy = gameMode === 'academy'
+
+  // Конфигурация по режиму
+  const config = {
+    icon: isDev
+      ? <Code2 className="w-4 h-4 text-primary" />
+      : isAcademy
+        ? <GraduationCap className="w-4 h-4 text-purple-500" />
+        : <Bot className="w-4 h-4 text-primary" />,
+    name: isDev ? 'Stack Tracer AI' : isAcademy ? 'Prof. Sana' : 'Sana AI Coach',
+    subtitle: isDev ? 'Code Reviewer' : isAcademy ? 'Academy Teacher' : 'Gemini 1.5 Flash',
+    placeholder: isDev
+      ? 'Click "Debug" to analyze your algorithm 🔍'
+      : isAcademy
+        ? 'Click "Explain Board" and I\'ll teach you the next technique! 📚'
+        : 'Click the button and I\'ll analyze your board! 🧠',
+    buttonText: isDev ? 'Run Debugger' : isAcademy ? 'Explain Board' : 'Get AI Hint',
+    loadingText: isDev ? 'Debugging...' : isAcademy ? 'Analyzing lesson...' : 'Analyzing...',
+    panelClass: isAcademy
+      ? 'rounded-3xl p-4 space-y-3 bg-purple-500/5 border border-purple-500/20 backdrop-blur-sm'
+      : 'coach-panel rounded-3xl p-4 space-y-3',
+    buttonClass: isAcademy
+      ? 'w-full flex items-center justify-center gap-2 bg-purple-600 text-white rounded-2xl py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity'
+      : 'w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-2xl py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity',
+  }
+
+  // Форматируем Academy ответ — разбиваем на секции
+  const renderHint = (text: string) => {
+    if (!isAcademy) {
+      return <p className="text-sm leading-relaxed">{text}</p>
+    }
+
+    // Academy format: разбиваем по эмодзи-секциям
+    const lines = text.split('\n').filter(Boolean)
+    return (
+      <div className="space-y-2">
+        {lines.map((line, i) => {
+          const isTechnique = line.startsWith('🎓')
+          const isObservation = line.startsWith('💡')
+          const isTask = line.startsWith('📝')
+          return (
+            <div
+              key={i}
+              className={
+                isTechnique
+                  ? 'text-sm font-bold text-purple-600 dark:text-purple-400'
+                  : isObservation
+                    ? 'text-sm text-foreground'
+                    : isTask
+                      ? 'text-sm font-semibold text-purple-500 bg-purple-500/10 rounded-xl px-2 py-1'
+                      : 'text-sm text-muted-foreground'
+              }
+            >
+              {line}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="coach-panel rounded-3xl p-4 space-y-3"
+      className={config.panelClass}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-            {isDev
-              ? <Code2 className="w-4 h-4 text-primary" />
-              : <Bot className="w-4 h-4 text-primary" />
-            }
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+            isAcademy ? 'bg-purple-500/10' : 'bg-primary/10'
+          }`}>
+            {config.icon}
           </div>
           <div>
-            <p className="text-sm font-semibold">
-              {isDev ? 'Stack Tracer AI' : 'Sana AI Coach'}
-            </p>
-            <p className="text-xs text-muted-foreground">Gemini 1.5 Flash</p>
+            <p className="text-sm font-semibold">{config.name}</p>
+            <p className="text-xs text-muted-foreground">{config.subtitle}</p>
           </div>
         </div>
         <button
@@ -112,6 +170,16 @@ export function AICoach() {
         </button>
       </div>
 
+      {/* Academy: Current Lesson banner */}
+      {isAcademy && (
+        <div className="flex items-center gap-2 bg-purple-500/10 rounded-xl px-3 py-2">
+          <BookOpen className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+          <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+            {hint ? 'Current Lesson' : 'Ready to learn? Ask for a hint!'}
+          </p>
+        </div>
+      )}
+
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -120,33 +188,31 @@ export function AICoach() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden space-y-3"
           >
-            <div className="min-h-[80px] rounded-2xl bg-primary/5 border border-primary/10 p-3">
+            <div className={`min-h-[80px] rounded-2xl p-3 ${
+              isAcademy
+                ? 'bg-purple-500/5 border border-purple-500/15'
+                : 'bg-primary/5 border border-primary/10'
+            }`}>
               {isLoading ? (
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className={`w-4 h-4 ${isAcademy ? 'text-purple-500' : ''}`} />
                   </motion.div>
-                  {isDev ? 'Analyzing stack trace...' : 'Thinking...'}
+                  {config.loadingText}
                 </div>
               ) : hint ? (
-                <motion.p
+                <motion.div
                   key={hint}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-sm leading-relaxed"
                 >
-                  {hint}
-                </motion.p>
+                  {renderHint(hint)}
+                </motion.div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {isDev
-                    ? 'Click "Debug" to analyze the current state of your algorithm 🔍'
-                    : 'Click the button and I\'ll analyze your board! 🧠'
-                  }
-                </p>
+                <p className="text-sm text-muted-foreground">{config.placeholder}</p>
               )}
             </div>
 
@@ -155,13 +221,10 @@ export function AICoach() {
               whileHover={{ scale: 1.02 }}
               onClick={getHint}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-2xl py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className={config.buttonClass}
             >
               <Sparkles className="w-4 h-4" />
-              {isLoading
-                ? (isDev ? 'Debugging...' : 'Analyzing...')
-                : (isDev ? 'Run Debugger' : 'Get AI Hint')
-              }
+              {isLoading ? config.loadingText : config.buttonText}
             </motion.button>
           </motion.div>
         )}

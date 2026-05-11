@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Timer, Heart } from 'lucide-react'
+import { ArrowLeft, Timer, Pause, Play } from 'lucide-react'
 import { ThemeBackground } from '@/components/theme-backgrounds'
 import { GlobalNavbar } from '@/components/layout/global-navbar'
 import { SudokuBoard } from '@/components/sudoku/board'
@@ -27,7 +27,7 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
   const {
     status, score, timer, timeLeft, difficulty,
     startGame, gameMode, lives, maxLives, formatTime,
-    isNoteMode,
+    isNoteMode, isPaused, togglePause,
   } = useSudokuGame()
 
   const hasStarted = useRef(false)
@@ -43,18 +43,19 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
   const isWarmup = gameMode === 'warmup'
   const isZen = gameMode === 'zen'
   const isDev = gameMode === 'dev'
+  const isAcademy = gameMode === 'academy'
 
-  // Термины для dev mode
   const labels = {
     score: isDev ? 'Experience' : 'Score',
     lives: isDev ? 'Deploys' : 'Lives',
   }
 
+  const canPause = !isZen && (status === 'playing' || status === 'paused')
+
   return (
     <div className="min-h-screen relative overflow-hidden pb-16 md:pb-0">
       <ThemeBackground />
       <div className="relative z-10">
-        {/* Navbar — только навигация, никаких игровых стат */}
         <GlobalNavbar />
 
         <GameOverModal
@@ -69,7 +70,7 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
         <main className="px-3 py-3 md:px-5 md:py-4">
           <div className="max-w-[1400px] mx-auto">
 
-            {/* Top bar: Back + Mode badge */}
+            {/* Top bar */}
             <div className="flex items-center justify-between mb-3">
               <button
                 onClick={() => router.push('/dashboard')}
@@ -79,7 +80,7 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                 <span className="hidden sm:inline">Menu</span>
               </button>
 
-              {/* Mode badge — только индикатор режима */}
+              {/* Mode badge */}
               <div className="flex items-center gap-2">
                 {isWarmup && (
                   <div className="flex items-center gap-2 glass rounded-2xl px-4 py-1.5">
@@ -103,10 +104,28 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                     ⚡ Developer Mode
                   </div>
                 )}
+                {isAcademy && (
+                  <div className="glass rounded-2xl px-4 py-1.5 text-sm text-purple-500 font-semibold">
+                    📚 Academy Mode
+                  </div>
+                )}
               </div>
 
-              {/* Placeholder чтобы badge был по центру */}
-              <div className="w-[80px]" />
+              {/* Pause button — не для zen */}
+              {canPause ? (
+                <button
+                  onClick={togglePause}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl glass text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {isPaused
+                    ? <Play className="w-4 h-4" />
+                    : <Pause className="w-4 h-4" />
+                  }
+                  <span className="hidden sm:inline">{isPaused ? 'Resume' : 'Pause'}</span>
+                </button>
+              ) : (
+                <div className="w-[80px]" />
+              )}
             </div>
 
             {/* Difficulty selector */}
@@ -123,7 +142,37 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex flex-col items-center gap-4 w-full xl:flex-1 xl:max-w-[700px]"
               >
-                <SudokuBoard />
+                {/* Board wrapper с pause overlay */}
+                <div className="relative w-full">
+                  <SudokuBoard />
+
+                  {/* Pause overlay */}
+                  <AnimatePresence>
+                    {isPaused && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl"
+                        style={{
+                          backdropFilter: 'blur(16px)',
+                          backgroundColor: 'rgba(0,0,0,0.65)',
+                        }}
+                      >
+                        <p className="text-5xl mb-3">⏸️</p>
+                        <p className="text-xl font-black text-white mb-1">Game Paused</p>
+                        <p className="text-sm text-white/60 mb-5">Board hidden · Take your time</p>
+                        <button
+                          onClick={togglePause}
+                          className="flex items-center gap-2 bg-primary text-primary-foreground rounded-2xl px-6 py-3 font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          <Play className="w-4 h-4" />
+                          Resume
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Mobile controls */}
                 <div className="xl:hidden flex flex-col items-center gap-4 w-full max-w-[580px]">
@@ -132,7 +181,7 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                     <NumberPad />
                   </div>
 
-                  {/* Mobile stats — одно место */}
+                  {/* Mobile stats */}
                   {!isZen && (
                     <div className="flex items-center gap-4 glass rounded-2xl px-4 py-2">
                       <Lives lives={lives} maxLives={maxLives} />
@@ -151,14 +200,14 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                 </div>
               </motion.div>
 
-              {/* RIGHT SIDEBAR — все игровые статы здесь */}
+              {/* RIGHT SIDEBAR */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
                 className="hidden xl:flex flex-col gap-3 w-[270px] flex-shrink-0"
               >
-                {/* Stats panel — главный блок */}
+                {/* Stats panel */}
                 <div className="glass clay rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -186,8 +235,8 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                     </span>
                   </div>
 
-                  {/* Lives / Deployment attempts — скрыты в Zen */}
-                  {!isZen && (
+                  {/* Lives — скрыты в Zen и Academy */}
+                  {!isZen && !isAcademy && (
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-sm text-muted-foreground">{labels.lives}</span>
                       <Lives lives={lives} maxLives={maxLives} />
@@ -197,6 +246,12 @@ export function GameClient({ gameMode: initialMode }: GameClientProps) {
                   {isZen && (
                     <div className="flex items-center justify-center pt-2">
                       <span className="text-blue-400 text-sm">No limits · Just flow 🌊</span>
+                    </div>
+                  )}
+
+                  {isAcademy && (
+                    <div className="flex items-center justify-center pt-2">
+                      <span className="text-purple-400 text-sm">📚 Learning mode · No penalties</span>
                     </div>
                   )}
                 </div>

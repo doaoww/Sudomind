@@ -22,13 +22,14 @@ export interface GameStore {
   maxLives: number
   score: number
   timer: number
-  timeLeft: number | null  // для warmup: 180 секунд обратный отсчёт
+  timeLeft: number | null
   hintsUsed: number
   selectedCell: [number, number] | null
   isNoteMode: boolean
   highlightedCells: Set<string>
   selectedNumber: number | null
   tutorialSeen: boolean
+  isPaused: boolean
 
   setBoard: (board: CellState[][]) => void
   setSolution: (solution: SudokuGrid) => void
@@ -38,6 +39,7 @@ export interface GameStore {
   setSelectedCell: (cell: [number, number] | null) => void
   setSelectedNumber: (num: number | null) => void
   toggleNoteMode: () => void
+  togglePause: () => void
   loseLife: () => void
   addScore: (points: number) => void
   incrementTimer: () => void
@@ -74,6 +76,7 @@ export const useGameStore = create<GameStore>((set) => ({
   highlightedCells: new Set(),
   selectedNumber: null,
   tutorialSeen: false,
+  isPaused: false,
 
   setBoard: (board) => set({ board }),
   setSolution: (solution) => set({ solution }),
@@ -83,21 +86,32 @@ export const useGameStore = create<GameStore>((set) => ({
   setSelectedCell: (selectedCell) => set({ selectedCell }),
   setSelectedNumber: (selectedNumber) => set({ selectedNumber }),
   toggleNoteMode: () => set((s) => ({ isNoteMode: !s.isNoteMode })),
+
+  togglePause: () => set((s) => {
+    if (s.status === 'playing') return { isPaused: true, status: 'paused' }
+    if (s.status === 'paused') return { isPaused: false, status: 'playing' }
+    return {}
+  }),
+
   loseLife: () => set((s) => {
     const newLives = s.lives - 1
     return { lives: newLives, status: newLives <= 0 ? 'lost' : s.status }
   }),
+
   addScore: (points) => set((s) => ({ score: Math.max(0, s.score + points) })),
   incrementTimer: () => set((s) => ({ timer: s.timer + 1 })),
+
   decrementTimeLeft: () => set((s) => {
     if (s.timeLeft === null) return {}
     const next = s.timeLeft - 1
     if (next <= 0) return { timeLeft: 0, status: 'timeout' }
     return { timeLeft: next }
   }),
+
   incrementHints: () => set((s) => ({ hintsUsed: s.hintsUsed + 1 })),
   setTutorialSeen: (tutorialSeen) => set({ tutorialSeen }),
   setTimeLeft: (timeLeft) => set({ timeLeft }),
+
   resetGame: () => set({
     board: emptyBoard(),
     solution: Array.from({ length: 9 }, () => Array(9).fill(null)),
@@ -111,12 +125,15 @@ export const useGameStore = create<GameStore>((set) => ({
     isNoteMode: false,
     highlightedCells: new Set(),
     selectedNumber: null,
+    isPaused: false,
   }),
+
   updateCell: (row, col, update) => set((s) => {
     const newBoard = s.board.map((r) => r.map((c) => ({ ...c })))
     newBoard[row][col] = { ...newBoard[row][col], ...update }
     return { board: newBoard }
   }),
+
   setHighlightedCells: (highlightedCells) => set({ highlightedCells }),
 }))
 

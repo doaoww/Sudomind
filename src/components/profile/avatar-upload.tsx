@@ -52,11 +52,11 @@ export function AvatarUpload({ currentUrl, initials, userId, onUpdate }: AvatarU
 
     setUploading(true)
     const ext = file.name.split('.').pop()
-    const path = `avatars/${userId}.${ext}`
+    const path = `${userId}/avatar.${ext}`
 
     const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(path, file, { upsert: true })
+  .from('avatars')
+  .upload(path, file, { upsert: true })
 
     if (uploadError) {
       toast.error('Upload failed. Try URL instead.')

@@ -8,8 +8,8 @@ export default async function DashboardPage() {
   if (!user) redirect('/auth/login')
 
   const { data: profile } = await supabase
-    .from('leaderboard')
-    .select('*')
+    .from('profiles')
+    .select('full_name, username, avatar_url, level, total_points, total_solved, streak, city, city_rank')
     .eq('id', user.id)
     .single()
 

@@ -105,10 +105,12 @@ export function useSudokuGame() {
       } else if (mode === 'warmup') {
         // Warmup: 3 минуты, обычные жизни
         useGameStore.setState({ lives: 3, maxLives: 3, timeLeft: 180 })
-      } else {
-        // Classic / dev / academy / daily
-        useGameStore.setState({ lives: 3, maxLives: 3, timeLeft: null })
-      }
+      } else if (mode === 'academy') {
+  // Academy: жизни есть визуально но не вычитаются — просто бесконечные
+  useGameStore.setState({ lives: 999, maxLives: 999, timeLeft: null })
+} else {
+  useGameStore.setState({ lives: 3, maxLives: 3, timeLeft: null })
+}
 
       // Статус последним — тригерит таймер
       store.setStatus('playing')
@@ -163,22 +165,27 @@ export function useSudokuGame() {
     )
 
     if (!correct) {
-      store.updateCell(row, col, { value: num, isError: true, isCorrect: false, notes: [] })
+  store.updateCell(row, col, { value: num, isError: true, isCorrect: false, notes: [] })
 
-      if (gameMode === 'zen') {
-        // Zen: ошибки не считаем, жизни не теряем
-        toast.info('Keep going! 🌊', { duration: 800 })
-        return
-      }
+  // Academy: нет штрафа, только визуальная ошибка
+  if (gameMode === 'academy') {
+    toast.error('🎓 Incorrect! Ask Prof. Sana to explain why.', { duration: 2500 })
+    return
+  }
 
-      store.loseLife()
-      const livesLeft = useGameStore.getState().lives
-      const msg = gameMode === 'dev'
-        ? `🐛 Bug detected! ${livesLeft} deployment attempts left`
-        : `Wrong! ${livesLeft} ❤️ left`
-      toast.error(msg, { duration: 1500 })
-      return
-    }
+  if (gameMode === 'zen') {
+    toast.info('Keep going! 🌊', { duration: 800 })
+    return
+  }
+
+  store.loseLife()
+  const livesLeft = useGameStore.getState().lives
+  const msg = gameMode === 'dev'
+    ? `🐛 Bug detected! ${livesLeft} deployment attempts left`
+    : `Wrong! ${livesLeft} ❤️ left`
+  toast.error(msg, { duration: 1500 })
+  return
+}
 
     store.updateCell(row, col, { value: num, isError: false, isCorrect: true, notes: [] })
 
