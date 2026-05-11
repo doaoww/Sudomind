@@ -117,80 +117,108 @@ function KawaiiBackground() {
 }
 
 // ← nFactorial: instant animations, no delay
-const SYMBOLS = ['{ }', '</>', 'fn()', '( )', '=>', '&&', 'n!', 'const', 'async', '===', 'O(n²)', 'deploy', 'git push', 'npm i', '// TODO']
+const SYMBOLS = [
+  'n!', 'n!', 'n!', // больше n! для узнаваемости
+  '{ }', '</>', 'fn()', '=>', 'O(n²)',
+  'const', 'async', '===', 'deploy',
+  'npm i', '// OK', 'git push',
+]
 
 function NFactorialBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Dot grid — instant */}
+      {/* Subtle dot grid */}
       <div
         className="absolute inset-0"
         style={{
-          opacity: 0.05,
-          backgroundImage: `radial-gradient(circle, rgba(0,0,0,0.5) 1px, transparent 1px)`,
-          backgroundSize: '28px 28px',
+          opacity: 0.06,
+          backgroundImage: `radial-gradient(circle, rgba(200,0,0,0.5) 1px, transparent 1px)`,
+          backgroundSize: '32px 32px',
         }}
       />
 
-      {/* Code particles — start immediately, stagger only position not delay */}
-      {Array.from({ length: 18 }, (_, i) => (
-        <motion.div
-          key={i}
-          className="absolute font-mono font-bold select-none"
+      {/* Floating symbols — яркий красный, медленно */}
+      {Array.from({ length: 16 }, (_, i) => {
+        // Разные стартовые y чтобы не ждать
+        const startY = (i * 31 + 10) % 90
+        const symbol = SYMBOLS[i % SYMBOLS.length]
+        const isNFactorial = symbol === 'n!'
+
+        return (
+          <motion.div
+            key={i}
+            className="absolute font-mono font-black select-none"
+            style={{
+              // ← Яркий красный #FF0000 для n!, чуть тусклее для кода
+              color: isNFactorial
+                ? `rgba(255, 0, 0, ${0.45 + (i % 3) * 0.12})`
+                : `rgba(220, 38, 38, ${0.18 + (i % 3) * 0.08})`,
+              fontSize: isNFactorial
+                ? `${20 + (i % 3) * 6}px`
+                : `${13 + (i % 3) * 4}px`,
+              left: `${(i * 14 + 5) % 92}%`,
+              fontFamily: isNFactorial ? 'serif' : 'monospace',
+            }}
+            initial={{
+              y: `${startY}vh`,
+              opacity: isNFactorial ? 0.6 : 0.4,
+            }}
+            animate={{
+              y: [`${startY}vh`, `${startY - 110}vh`],
+              opacity: isNFactorial
+                ? [0.6, 0.9, 0.7, 0.4, 0]
+                : [0.4, 0.6, 0.4, 0.2, 0],
+            }}
+            transition={{
+              // ← 20-30 секунд — медленно
+              duration: 20 + (i % 5) * 4,
+              repeat: Infinity,
+              repeatDelay: (i % 5) * 1.2,
+              ease: 'linear',
+            }}
+          >
+            {symbol}
+          </motion.div>
+        )
+      })}
+
+      {/* Static n! watermarks в углах */}
+      {[
+        { top: '8%', left: '3%', opacity: 0.08, size: '5rem' },
+        { top: '20%', right: '2%', opacity: 0.06, size: '4rem' },
+        { bottom: '15%', left: '4%', opacity: 0.07, size: '4.5rem' },
+        { bottom: '5%', right: '3%', opacity: 0.09, size: '5.5rem' },
+      ].map((style, i) => (
+        <div
+          key={`wm-${i}`}
+          className="absolute font-black font-serif select-none"
           style={{
-            color: `rgba(220, 38, 38, ${0.15 + (i % 3) * 0.07})`,
-            fontSize: `${14 + (i % 4) * 4}px`,
-            left: `${(i * 13 + 3) % 94}%`,
-          }}
-          // ← No delay — start immediately at different y positions
-          initial={{ y: `${30 + (i * 37) % 70}vh`, opacity: 0.7 }}
-          animate={{
-            y: [
-              `${30 + (i * 37) % 70}vh`,
-              `${(30 + (i * 37) % 70) - 60}vh`,
-            ],
-            opacity: [0.7, 0.9, 0.5, 0],
-          }}
-          transition={{
-            duration: 7 + (i % 4) * 2,
-            repeat: Infinity,
-            // ← repeatDelay staggers restarts, not initial appearance
-            repeatDelay: (i % 5) * 0.8,
-            ease: 'linear',
+            ...style,
+            fontSize: style.size,
+            color: '#FF0000',
           }}
         >
-          {SYMBOLS[i % SYMBOLS.length]}
-        </motion.div>
+          n!
+        </div>
       ))}
 
-      {/* Vertical scan lines — instant */}
-      <svg
-        className="absolute inset-0 w-full h-full"
-        style={{ opacity: 0.04 }}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {Array.from({ length: 10 }, (_, i) => (
+
+      {/* Vertical lines decoration */}
+      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.035 }}>
+        {Array.from({ length: 7 }, (_, i) => (
           <line
             key={i}
-            x1={`${i * 11}%`} y1="0"
-            x2={`${i * 11 + 4}%`} y2="100%"
-            stroke="rgb(220,38,38)"
+            x1={`${i * 16 + 4}%`} y1="0"
+            x2={`${i * 16 + 2}%`} y2="100%"
+            stroke="#FF0000"
             strokeWidth="1"
           />
         ))}
       </svg>
 
-      {/* Moving horizontal scan line */}
-      <motion.div
-        className="absolute left-0 right-0 h-px bg-red-500/20"
-        initial={{ top: '0%' }}
-        animate={{ top: '100%' }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-      />
-
-      {/* Glow orbs */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/8 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-red-400/6 rounded-full blur-3xl" />
+      {/* Red glow orbs */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-500/8 rounded-full blur-3xl" />
     </div>
   )
 }

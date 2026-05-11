@@ -17,42 +17,48 @@ export const DEV_DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 export function useSudokuGame() {
   const store = useGameStore()
-  // ← Отдельный ref для seconds чтобы не было closure problem
-  const secondsRef = useRef(0)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // ← Ключевой фикс: храним актуальный статус в ref чтобы избежать stale closure
+  const statusRef = useRef(store.status)
   const supabase = createClient()
   const { setTheme } = useTheme()
 
+  // Sync statusRef with store
+  useEffect(() => {
+    statusRef.current = store.status
+  }, [store.status])
+
   const stopTimer = useCallback(() => {
-    if (timerRef.current) {
+    if (timerRef.current !== null) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }
   }, [])
 
-  const startTimer = useCallback(() => {
-    stopTimer()
-    secondsRef.current = 0
-    // ← Ровно 1000ms, функциональное обновление
-    timerRef.current = setInterval(() => {
-      secondsRef.current += 1
-      useGameStore.setState((s) => ({ timer: s.timer + 1 }))
-    }, 1000)
-  }, [stopTimer])
-
+  // ← Таймер запускается ОДИН раз при статусе playing
+  // Использует setState с функцией чтобы не было stale closure
   useEffect(() => {
     if (store.status === 'playing') {
-      startTimer()
+      // Сначала останавливаем предыдущий если был
+      stopTimer()
+      timerRef.current = setInterval(() => {
+        // Functional update — не зависит от замыкания
+        useGameStore.setState((prev) => ({ timer: prev.timer + 1 }))
+      }, 1000)
     } else {
       stopTimer()
     }
-    return () => stopTimer()
-  // ← Только status в deps, не startTimer/stopTimer чтобы не было re-subscribe
+
+    return () => {
+      stopTimer()
+    }
+  // ← ТОЛЬКО store.status в зависимостях — не stopTimer, не store
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.status])
 
-  // Start game
   const startGame = useCallback(
-    (difficulty: Difficulty, mode: GameMode = 'classic') => {
+    (difficulty: Difficulty, mode: GameMode = 'classic', silent = false) => {
+      // Останавливаем таймер до сброса
       stopTimer()
       store.resetGame()
       store.setDifficulty(difficulty)
@@ -73,21 +79,22 @@ export function useSudokuGame() {
 
       store.setBoard(board)
       store.setSolution(solution)
-      store.setStatus('playing')
 
-      // Zen — infinite lives
       if (mode === 'zen') {
         useGameStore.setState({ lives: 999 })
       }
 
-      const isDev = mode === 'dev'
-      const label = isDev
-        ? DEV_DIFFICULTY_LABELS[difficulty]
-        : { easy: '🌿 Easy', medium: '🔥 Medium', hard: '💀 Hard' }[difficulty]
+      // ← setStatus ПОСЛЕ всего — это триггерит useEffect таймера
+      store.setStatus('playing')
 
-      toast.success(`${label} started!`, {
-        description: mode === 'zen' ? 'No timer. No pressure.' : undefined,
-      })
+      // ← silent = true при автостарте, чтобы не было двойного toast
+      if (!silent) {
+        const label =
+          mode === 'dev'
+            ? DEV_DIFFICULTY_LABELS[difficulty]
+            : { easy: '🌿 Easy', medium: '🔥 Medium', hard: '💀 Hard' }[difficulty]
+        toast.success(`${label}`, { duration: 1200 })
+      }
     },
     [store, setTheme, stopTimer]
   )
@@ -112,10 +119,8 @@ export function useSudokuGame() {
 
       if (cell.isFixed || cell.isCorrect) {
         toast.info(
-          gameMode === 'dev'
-            ? '🐛 Cannot modify deployed code!'
-            : 'Oops! This cell is already locked 🔒',
-          { duration: 1500 }
+          gameMode === 'dev' ? '🐛 Cannot modify deployed code!' : 'Cell is locked 🔒',
+          { duration: 1200 }
         )
         return
       }
@@ -130,20 +135,19 @@ export function useSudokuGame() {
 
       const correct = validateCell(
         board.map((r) => r.map((c) => c.value)),
-        solution, row, col, num
+        solution,
+        row,
+        col,
+        num
       )
 
       if (!correct) {
-        // Number stays, marked red
         store.updateCell(row, col, {
-          value: num,
-          isError: true,
-          isCorrect: false,
-          notes: [],
+          value: num, isError: true, isCorrect: false, notes: [],
         })
 
         if (gameMode === 'zen') {
-          toast.info('Not quite, keep trying! 🌊', { duration: 1500 })
+          toast.info('Keep trying! 🌊', { duration: 1000 })
           return
         }
 
@@ -151,9 +155,9 @@ export function useSudokuGame() {
         const livesLeft = useGameStore.getState().lives
         toast.error(
           gameMode === 'dev'
-            ? `🐛 Bug! ${livesLeft} deployment${livesLeft !== 1 ? 's' : ''} left`
-            : `Wrong! ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} left ❤️`,
-          { duration: 2000 }
+            ? `🐛 Bug! ${livesLeft} deploys left`
+            : `Wrong! ${livesLeft} ❤️ left`,
+          { duration: 1800 }
         )
         return
       }
@@ -162,7 +166,7 @@ export function useSudokuGame() {
         value: num, isError: false, isCorrect: true, notes: [],
       })
 
-      // Clear related notes
+      // Clear notes in related cells
       const boxRow = Math.floor(row / 3) * 3
       const boxCol = Math.floor(col / 3) * 3
       const related: [number, number][] = []
@@ -179,19 +183,19 @@ export function useSudokuGame() {
         }
       })
 
-      const points = { easy: 10, medium: 20, hard: 30 }[store.difficulty]
-      store.addScore(points)
+      const pts = { easy: 10, medium: 20, hard: 30 }[store.difficulty]
+      store.addScore(pts)
       toast.success(
-        gameMode === 'dev' ? `✅ +${points} XP` : `+${points} ⭐`,
-        { duration: 1200 }
+        gameMode === 'dev' ? `✅ +${pts} XP` : `+${pts} ⭐`,
+        { duration: 900 }
       )
 
       const finalBoard = useGameStore.getState().board
       if (isComplete(finalBoard.map((r) => r.map((c) => c.value)), solution)) {
         store.setStatus('won')
         toast.success(
-          gameMode === 'dev' ? '🚀 Deployed successfully!' : '🎉 Puzzle solved!',
-          { duration: 4000 }
+          gameMode === 'dev' ? '🚀 Deployed!' : '🎉 Solved!',
+          { duration: 3000 }
         )
         saveGame()
       }
@@ -200,50 +204,36 @@ export function useSudokuGame() {
   )
 
   const eraseCell = useCallback(() => {
-    const { selectedCell, board, gameMode } = store
+    const { selectedCell, board } = store
     if (!selectedCell) return
     const [row, col] = selectedCell
     const cell = board[row][col]
-    if (cell.isFixed || cell.isCorrect) {
-      toast.info('This cell is locked!', { duration: 1500 })
-      return
-    }
+    if (cell.isFixed || cell.isCorrect) return
     store.updateCell(row, col, { value: null, notes: [], isError: false })
   }, [store])
 
   const useHint = useCallback(() => {
-    const { board, solution, status, gameMode } = store
+    const { board, solution, status } = store
     if (status !== 'playing') return
 
     const candidates: [number, number][] = []
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        const cell = board[r][c]
-        if (!cell.isFixed && !cell.isCorrect) candidates.push([r, c])
+        if (!board[r][c].isFixed && !board[r][c].isCorrect) {
+          candidates.push([r, c])
+        }
       }
     }
-
-    if (candidates.length === 0) {
-      toast.info('No empty cells!')
-      return
-    }
+    if (!candidates.length) return
 
     const [row, col] = candidates[Math.floor(Math.random() * candidates.length)]
-    const hintValue = solution[row][col]
-
-    store.updateCell(row, col, {
-      value: hintValue, isError: false, isCorrect: true, notes: [],
-    })
+    const val = solution[row][col]
+    store.updateCell(row, col, { value: val, isError: false, isCorrect: true, notes: [] })
     store.setSelectedCell([row, col])
     store.setHighlightedCells(getHighlightedCells(row, col))
     store.incrementHints()
     store.addScore(-5)
-
-    toast.info(
-      gameMode === 'dev'
-        ? `💡 [${row + 1},${col + 1}] = ${hintValue} (-5 XP)`
-        : `💡 Row ${row + 1}, Col ${col + 1} = ${hintValue} (-5 pts)`
-    )
+    toast.info(`💡 [${row + 1},${col + 1}] = ${val} (-5)`, { duration: 2000 })
   }, [store])
 
   const saveGame = useCallback(async () => {
@@ -252,7 +242,6 @@ export function useSudokuGame() {
       if (!user) return
       const state = useGameStore.getState()
 
-      // Save game record
       await supabase.from('games').insert({
         user_id: user.id,
         puzzle: state.board.flat().map((c) => (c.isFixed ? (c.value ?? 0) : 0)).join(''),
@@ -260,12 +249,11 @@ export function useSudokuGame() {
         difficulty: state.difficulty,
         completed: true,
         time_seconds: state.timer,
-        errors: 3 - state.lives,
+        errors: Math.max(0, 3 - state.lives),
         hints_used: state.hintsUsed,
         completed_at: new Date().toISOString(),
       })
 
-      // Upsert daily activity
       const today = new Date().toISOString().split('T')[0]
       const { data: existing } = await supabase
         .from('user_activity')
@@ -291,7 +279,6 @@ export function useSudokuGame() {
         })
       }
 
-      // Update profile stats
       const { data: profile } = await supabase
         .from('profiles')
         .select('total_solved, total_points, streak')
@@ -307,7 +294,7 @@ export function useSudokuGame() {
         }).eq('id', user.id)
       }
     } catch (e) {
-      console.error('Save error:', e)
+      console.error('saveGame error:', e)
     }
   }, [supabase])
 
@@ -316,10 +303,7 @@ export function useSudokuGame() {
       if (store.status !== 'playing') return
       if (e.key >= '1' && e.key <= '9') inputNumber(parseInt(e.key))
       if (e.key === 'Backspace' || e.key === 'Delete') eraseCell()
-      if (e.key === 'n' || e.key === 'N') {
-        store.toggleNoteMode()
-        toast.info(!store.isNoteMode ? '✏️ Notes ON' : 'Notes OFF', { duration: 1000 })
-      }
+      if (e.key === 'n' || e.key === 'N') store.toggleNoteMode()
       const { selectedCell } = store
       if (!selectedCell) return
       const [row, col] = selectedCell

@@ -466,9 +466,7 @@
 
 /* ===== Base Styles ===== */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+
   
   html {
     font-size: 18px; /* Increased base font size */

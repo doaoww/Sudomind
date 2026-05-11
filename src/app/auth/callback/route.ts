@@ -4,30 +4,29 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const error = searchParams.get('error')
+
+  if (error) {
+    return NextResponse.redirect(`${origin}/auth/login?error=${error}`)
+  }
 
   if (code) {
     const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: { user }, error: authError } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error && user) {
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
+    if (!authError && user) {
+      // Upsert profile — гарантирует создание
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: user.user_metadata?.full_name
+          ?? user.user_metadata?.name
+          ?? user.email?.split('@')[0]
+          ?? 'Player',
+        avatar_url: user.user_metadata?.avatar_url ?? null,
+        username: (user.email?.split('@')[0] ?? 'user') + '_' + Math.floor(Math.random() * 9000 + 1000),
+        city: 'Almaty',
+      }, { onConflict: 'id', ignoreDuplicates: true })
 
-      if (!existingProfile) {
-        const username = user.email?.split('@')[0] ?? `user_${Date.now()}`
-        await supabase.from('profiles').insert({
-          id: user.id,
-          username,
-          full_name: user.user_metadata?.full_name ?? username,
-          avatar_url: user.user_metadata?.avatar_url ?? null,
-          city: 'Almaty',
-        })
-      }
-
-      // ← Redirect to dashboard, not game
       return NextResponse.redirect(`${origin}/dashboard`)
     }
   }

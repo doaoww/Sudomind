@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, Loader2, KeyRound, ArrowLeft, Chrome } from 'lucide-react'
+import { Mail, Loader2, KeyRound, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { ThemeBackground } from '@/components/theme-backgrounds'
@@ -20,26 +20,26 @@ export default function LoginPage() {
   const supabase = createClient()
 
   // Step 1: send OTP
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+ const handleSendOtp = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setLoading(true)
+  setError('')
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        // This sends a 6-char OTP — works if Supabase project has OTP enabled
-      },
-    })
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      // ← НЕТ emailRedirectTo — это заставляет Supabase слать код, не ссылку
+    },
+  })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      setStep('otp')
-    }
-    setLoading(false)
+  if (error) {
+    setError(error.message)
+  } else {
+    setStep('otp')
   }
+  setLoading(false)
+}
 
   // Step 2: verify OTP code
   const handleVerifyOtp = async () => {
