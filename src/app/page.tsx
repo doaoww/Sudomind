@@ -22,7 +22,7 @@ export default function LandingPage() {
         <FinalCta />
       </div>
       <footer className="relative z-10 border-t border-border/40 py-6 text-center text-sm text-muted-foreground">
-        © 2025 Sudomind · nFactorial Incubator · Made in Almaty 🇰🇿
+        © 2025 Sudomind · nFactorial Incubator · Made by doaoww
       </footer>
     </div>
   )

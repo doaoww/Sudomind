@@ -1,3 +1,4 @@
+// app/game/page.tsx
 import { createClient } from '@/lib/supabase/server'
 import { GameClient } from './game-client'
 
@@ -24,7 +25,8 @@ export default async function GamePage({ searchParams }: Props) {
     <GameClient
       profile={profile}
       userId={user?.id}
-      gameMode={mode}
+      gameMode={mode}       // if undefined → show mode selector
+      initialDifficulty={difficulty}
     />
   )
 }
